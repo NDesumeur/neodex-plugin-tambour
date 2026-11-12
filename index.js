@@ -1060,36 +1060,65 @@ function tbBall(r, fill, light) {  // une note ronde : contour sombre, anneau cl
   tbBalls.set(k, c); return c;
 }
 const TB_LANTERN = spr(['..kkk..', '.kgggk.', 'krRrrrk', 'kRrrrrk', 'krrrrrk', 'krrrrdk', 'krrrrdk', '.kgggk.', '..kkk..', '...g...'], {k: '#2a0a08', g: '#e8b84a', r: '#e83a2a', R: '#ff9a6a', d: '#a82018'});
-const TB_MAN = spr(['...kkkkkk...', '..khhhhhhk..', '.khhhhhhhhk.', '.krrrrrrrrkr', '.kssssssssk.', '.kssesssessk', '.kssssssssk.', '..kssmmssk..', '...kkkkkk...', '..kjwjjwjk..', '.kjjjwwjjjk.', '.kjjjjjjjjk.', '.kjjjjjjjjk.'],
-  {k: '#14100a', h: '#2a1a14', r: '#e83a2a', s: '#f0c8a0', e: '#14100a', m: '#a83a2a', j: '#3a5ac8', w: '#ffffff'});
-const TB_BG = cnv(W, H, b => {  // le décor dessiné une fois : ciel de nuit tramé, étoiles, guirlande, estrade
+const TB_MAN = spr(['....kkkkkkkk....', '...khhhhhhhhk...', '..khhhhhhhhhhk..', '..krrrrrrrrrrkrr', '..krwrrrrrrrrk.r', '..kssssssssssk..', '..kssessssessk..', '..kssessssessk..', '..kssssssssssk..', '..kSsssmmsssSk..', '...kkSSSSSSkk...',
+  '..kjjjwkkwjjjk..', '.kjjjjjwwjjjjjk.', '.kjJjjjwwjjjJjk.', '.kjJjjjwwjjjJjk.', '.kyyyyyyyyyyyyk.', '.kjjjjjkkjjjjjk.', '..kkkkk..kkkkk..'],
+  {k: '#14100a', h: '#2a1a14', r: '#e83a2a', w: '#ffffff', s: '#f0c8a0', S: '#c8906a', e: '#14100a', m: '#a83a2a', j: '#3a5ac8', J: '#2a3a98', y: '#e8b84a'});
+const TB_BG = cnv(W, H, b => {  // le décor dessiné une fois : ciel de nuit tramé, étoiles, lune, montagnes, toits du temple, guirlande, estrade
   const sky = ['#120a22', '#160c2a', '#1c1034', '#22143e', '#2a1a48', '#32204e'];
   for (let y = TB.Y1; y < H; y++) { const f = (y - TB.Y1) / (H - TB.Y1 - 40) * (sky.length - 1), i = Math.min(sky.length - 1, Math.floor(f)); px(b, (f - i > .5 && y % 2) ? sky[Math.min(sky.length - 1, i + 1)] : sky[i], 0, y, W, 1); }
   const r = seeded(9); for (let i = 0; i < 70; i++) px(b, ['#3a3060', '#6a5a98', '#d8d0f8'][Math.floor(r() * r() * 3)], Math.floor(r() * W), TB.Y1 + 4 + Math.floor(r() * 70));
+  for (let y = -14; y <= 14; y++) for (let x = -14; x <= 14; x++) { const d = Math.hypot(x, y); if (d >= 10 && d < 14 && (x + y) % 2 === 0) px(b, '#2a2050', 46 + x, 112 + y); else if (d < 10) px(b, Math.hypot(x - 3, y + 1) < 2 ? '#e0cc90' : Math.hypot(x + 3, y + 3) < 6 ? '#fff8d8' : '#f0e0a0', 46 + x, 112 + y); }
+  for (let x = 0; x < W; x++) { const h = 22 + Math.round(Math.abs(Math.sin(x / 41)) * 18 + Math.sin(x / 9) * 2); px(b, '#1a1230', x, 168 - h, 1, h); px(b, '#2a1e44', x, 168 - h, 1, 1); }
+  const roof = (x0, w, y0) => {  // un toit de temple, bords relevés, sur ses piliers, une fenêtre allumée
+    for (let i = 0; i < 6; i++) { const lift = i < 2 ? 2 - i : 0; px(b, '#0e0a1a', x0 - w / 2 - 4 + i, y0 + i - lift, w + 8 - i * 2, 1); }
+    px(b, '#3a2a4a', x0 - w / 2 - 4, y0 - 2, w + 8, 1); px(b, '#0e0a1a', x0 - w / 2 + 3, y0 + 6, w - 6, 168 - y0 - 6); px(b, '#e8a84a', x0 - 2, y0 + 12, 4, 5); px(b, '#ffd88a', x0 - 1, y0 + 13, 2, 3);
+  };
+  roof(250, 34, 128); roof(250, 24, 116); roof(290, 26, 140);
   for (let x = 0; x < W; x++) px(b, '#5a3a28', x, 88 + Math.round(Math.sin(x / W * Math.PI) * 10), 1, 1);
   px(b, '#3a2214', 0, 200, W, H - 200); for (let x = 0; x < W; x += 20) px(b, '#2a160c', x, 200, 1, H - 200); px(b, '#6a4228', 0, 200, W, 1); px(b, '#4a2c1a', 0, 201, W, 1);
 });
+function tbFirework(x, y, col) { for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2, v = 1.2 + (i % 3) * .5; (rh.fw ||= []).push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 46, col: i % 4 ? col : '#ffffff'}); } }
 function tbStage(now) {
   const bpm = rh.info?.bpm || 120, beat = rh.mode === 'play' ? Math.max(0, now) * bpm / 60 : rh.tick / 40, bob = beat % 1 < .15 ? 1 : 0, cx = W / 2;
   g.drawImage(TB_BG, 0, 0);
-  for (let i = 0; i < 9; i++) { const x = 14 + i * 37, y = 88 + Math.round(Math.sin(x / W * Math.PI) * 10), sw = Math.round(Math.sin(beat * Math.PI + i)); px(g, 'rgba(255,170,90,.12)', x - 6 + sw, y - 1, 13, 14); g.drawImage(TB_LANTERN, x - 3 + sw, y); }
-  // le tambourinaire : bras levés entre deux coups, baguettes sur la peau (au centre ou sur le bord) quand on frappe
-  const hit = rh.drum && rh.tick - rh.drum.at < 7, rim = rh.drum?.type === 'ka';
-  g.drawImage(TB_MAN, cx - 6, 148 - (hit ? 0 : bob));
-  for (const sd of [-1, 1]) {
-    const sx = cx + sd * 5, sy = 158, hx = hit ? cx + sd * (rim ? 16 : 6) : cx + sd * 10, hy = hit ? 170 : 144 - bob;
-    for (let k = 0; k <= 7; k++) px(g, '#3a5ac8', sx + (hx - sx) * k / 7 - 1, sy + (hy - sy) * k / 7 - 1, 2, 2);
-    px(g, '#f0c8a0', hx - 1, hy - 1, 2, 2);
-    const ex = hit ? hx + sd : hx + sd * 3, ey = hit ? hy + 4 : hy - 9; for (let k = 0; k <= 9; k++) px(g, '#e8c890', hx + (ex - hx) * k / 9, hy + (ey - hy) * k / 9, 1, 1);
+  // un feu d'artifice tous les 50 de combo (et un petit à 25)
+  if (rh.mode === 'play' && rh.combo && rh.combo % 25 === 0 && rh.fwAt !== rh.combo) { rh.fwAt = rh.combo; const n = rh.combo % 50 ? 1 : 3; for (let k = 0; k < n; k++) tbFirework(60 + Math.random() * 200, 96 + Math.random() * 30, ['#ff6a4a', '#ffd84a', '#7ad8ff', '#c88aff'][(rh.combo / 25 + k) % 4]); rh.cheer = rh.tick; }
+  if (rh.fw) { for (const p of rh.fw) { p.x += p.vx; p.y += p.vy; p.vx *= .96; p.vy = p.vy * .96 + .04; p.life--; g.globalAlpha = Math.min(1, p.life / 20); px(g, p.col, p.x, p.y, p.life > 30 ? 2 : 1, p.life > 30 ? 2 : 1); } g.globalAlpha = 1; rh.fw = rh.fw.filter(p => p.life > 0); }
+  for (let i = 0; i < 9; i++) {  // les lanternes qui se balancent, avec leur halo qui respire
+    const x = 14 + i * 37, y = 88 + Math.round(Math.sin(x / W * Math.PI) * 10), sw = Math.round(Math.sin(beat * Math.PI + i)), gl = .1 + (beat % 1 < .2 ? .08 : 0);
+    g.globalAlpha = gl; for (let d = -8; d <= 8; d++) { const w = Math.round(Math.sqrt(64 - d * d)); px(g, '#ffaa5a', x + sw - w, y + 5 + d, w * 2 + 1, 1); } g.globalAlpha = 1;
+    g.drawImage(TB_LANTERN, x - 3 + sw, y);
   }
-  // le grand tambour : peau claire, corps rouge cerclé, clous dorés, sur un support en bois
-  px(g, '#5a3418', cx - 20, 194, 3, 7); px(g, '#5a3418', cx + 17, 194, 3, 7);
-  for (let y = 172; y < 196; y++) { const w = 18 + Math.round(Math.sin((y - 172) / 24 * Math.PI) * 3); px(g, '#14100a', cx - w - 1, y, w * 2 + 2, 1); px(g, (y - 172) % 7 < 1 ? '#7a2014' : '#b8402a', cx - w, y, w * 2, 1); px(g, '#d8604a', cx - w + 2, y, 2, 1); }
-  for (let x = -16; x <= 16; x += 4) { px(g, '#e8b84a', cx + x, 175, 1, 1); px(g, '#e8b84a', cx + x, 193, 1, 1); }
-  for (let y = 0; y < 8; y++) { const w = Math.round(Math.sqrt(1 - ((y - 3.5) / 4) ** 2) * 19); px(g, '#14100a', cx - w, 166 + y, w * 2 + 1, 1); if (y && y < 7) px(g, hit && !rim ? '#fff8e8' : '#f0e0c0', cx - w + 1, 166 + y, w * 2 - 1, 1); }
-  // le public, qui bouge en rythme
-  for (let i = 0; i < 11; i++) { const x = 8 + i * 30 + (i % 2) * 6; if (Math.abs(x - cx) < 26) continue; const y = 222 - ((i + Math.floor(beat)) % 2 && rh.mode === 'play' ? 1 : 0) - (i % 3);
-    px(g, '#0c0614', x - 7, y + 5, 14, H - y - 5); for (let yy = 0; yy < 8; yy++) { const w = Math.round(Math.sqrt(1 - ((yy - 3.5) / 4) ** 2) * 5); px(g, '#0c0614', x - w, y - 4 + yy, w * 2, 1); } }
+  // le tambourinaire : bras levés entre deux coups, baguettes sur la peau (au centre ou sur le bord) quand on frappe
+  const hit = rh.drum && rh.tick - rh.drum.at < 7, rim = rh.drum?.type === 'ka', my = 149 - (hit ? -1 : bob);
+  g.drawImage(TB_MAN, cx - 8, my);
+  for (const sd of [-1, 1]) {
+    const sx = cx + sd * 7, sy = my + 13, hx = hit ? cx + sd * (rim ? 21 : 7) : cx + sd * 13, hy = hit ? 167 : my - 2;
+    for (let k = 0; k <= 8; k++) { const ax = sx + (hx - sx) * k / 8, ay = sy + (hy - sy) * k / 8; px(g, '#14100a', ax - 2, ay - 2, 4, 4); }
+    for (let k = 0; k <= 8; k++) { const ax = sx + (hx - sx) * k / 8, ay = sy + (hy - sy) * k / 8; px(g, k < 4 ? '#3a5ac8' : '#f0c8a0', ax - 1, ay - 1, 2, 2); }
+    const ex = hit ? hx + sd * 2 : hx + sd * 4, ey = hit ? hy + 3 : hy - 12;  // la baguette
+    for (let k = 0; k <= 12; k++) { const bx = hx + (ex - hx) * k / 12, by = hy + (ey - hy) * k / 12; px(g, '#5a3418', bx - 1, by, 2, 1); px(g, '#f0d8a0', bx, by, 1, 1); }
+  }
+  // le grand tambour : peau claire qui s'illumine, corps rouge cerclé de cordes, clous dorés, sur son support en bois
+  px(g, '#14100a', cx - 27, 190, 5, 11); px(g, '#5a3418', cx - 26, 190, 3, 10); px(g, '#14100a', cx + 22, 190, 5, 11); px(g, '#5a3418', cx + 23, 190, 3, 10); px(g, '#5a3418', cx - 26, 196, 52, 2);
+  for (let y = 172; y < 199; y++) { const w = 22 + Math.round(Math.sin((y - 172) / 27 * Math.PI) * 4); px(g, '#14100a', cx - w - 1, y, w * 2 + 2, 1); px(g, (y - 172) % 9 < 1 ? '#7a2014' : '#b8402a', cx - w, y, w * 2, 1); px(g, '#e0705a', cx - w + 3, y, 2, 1); px(g, '#8a2818', cx + w - 4, y, 3, 1); }
+  for (let x = -20; x <= 20; x += 4) { px(g, '#ffe08a', cx + x, 175, 1, 1); px(g, '#b8902a', cx + x, 176, 1, 1); px(g, '#ffe08a', cx + x, 195, 1, 1); }
+  for (let x = -18; x <= 18; x += 6) { px(g, '#e8d8b0', cx + x, 180, 1, 11); px(g, '#e8d8b0', cx + x + 3, 183, 1, 5); }  // les cordes
+  const head = hit ? (rim ? '#f0e0c0' : '#fff8e8') : '#f0e0c0';
+  for (let y = 0; y < 10; y++) { const w = Math.round(Math.sqrt(1 - ((y - 4.5) / 5) ** 2) * 23); px(g, '#14100a', cx - w, 164 + y, w * 2 + 1, 1); if (y && y < 9) { px(g, hit && rim ? '#9ad0ff' : '#c8a878', cx - w + 1, 164 + y, w * 2 - 1, 1); px(g, head, cx - w + 3, 164 + y, w * 2 - 5, 1); } }
+  px(g, hit && !rim ? '#ff9a7a' : '#e8c890', cx - 4, 168, 9, 2);  // le cercle peint au centre
+  if (hit) { const p = rh.tick - rh.drum.at, c = rim ? '#9ad0ff' : '#ffd84a'; g.globalAlpha = 1 - p / 7; for (const a of [-2.4, -1.9, -1.57, -1.2, -.7]) { const ox = rim ? (a < -1.57 ? -22 : 22) : 0; px(g, c, cx + ox + Math.cos(a) * (8 + p * 3), 166 + Math.sin(a) * (8 + p * 3), 2, 2); } g.globalAlpha = 1; }
+  // le public, éclairé par les lanternes : il danse en rythme et lève les bras au combo
+  const cheer = rh.mode === 'play' && (rh.tick - (rh.cheer ?? -99) < 90 || (rh.combo >= 30 && beat % 2 < 1));
+  const CROWD = ['#4a1a3a', '#1a2a4a', '#3a2a1a', '#2a1a4a', '#1a3a2a'];
+  for (let i = 0; i < 11; i++) {
+    const x = 8 + i * 30 + (i % 2) * 6; if (Math.abs(x - cx) < 32) continue;
+    const y = 222 - ((i + Math.floor(beat)) % 2 && rh.mode === 'play' ? 1 : 0) - (i % 3), c = CROWD[i % 5];
+    px(g, '#0c0614', x - 8, y + 4, 16, H - y - 4); px(g, c, x - 7, y + 5, 14, H - y - 5); px(g, '#6a3a3a', x - 7, y + 5, 14, 1);
+    for (let yy = 0; yy < 9; yy++) { const w = Math.round(Math.sqrt(1 - ((yy - 4) / 4.5) ** 2) * 5); px(g, '#0c0614', x - w - 1, y - 5 + yy, w * 2 + 2, 1); px(g, yy < 2 ? '#5a3a4a' : '#2a1a2a', x - w, y - 5 + yy, w * 2, 1); }
+    if (cheer) { const up = (rh.tick / 6 + i) % 2 < 1 ? 1 : 0; for (const sd of [-1, 1]) { px(g, '#0c0614', x + sd * 8 - 1, y - 6 - up, 3, 10); px(g, c, x + sd * 8, y - 5 - up, 1, 8); px(g, '#c8906a', x + sd * 8, y - 7 - up, 1, 2); } }
+    else if ((i + Math.floor(beat)) % 3 === 0 && rh.mode === 'play') px(g, '#ffd84a', x + (i % 2 ? 6 : -7), y + 2, 1, 1);  // une petite lumière brandie
+  }
   // les tampons pour la souris et le doigt
   if (rh.mode === 'play') for (const [x, t, lab] of [[30, 'don', 'DON'], [W - 30, 'ka', 'KA']]) {
     const on = rh.drum?.type === t && rh.tick - rh.drum.at < 6; g.drawImage(tbBall(16, on ? TB_COL[t][1] : TB_COL[t][0], TB_COL[t][1]), x - 16, H - 40); pxFont(g, lab, x, H - 21, '#ffffff', 7, 'center'); }
@@ -1099,6 +1128,7 @@ function tbLane(now) {
   px(g, '#14100a', 0, Y0 - 1, W, Y1 - Y0 + 2); px(g, '#2a1a12', 0, Y0 + 1, W, Y1 - Y0 - 2); px(g, '#c8902a', 0, Y0, W, 1); px(g, '#c8902a', 0, Y1 - 1, W, 1);
   const bar = 4 * 60 / bpm; for (let k = Math.max(0, Math.ceil((now - 1) / bar)); ; k++) { const x = HX + (k * bar - now) * pxs; if (x > W) break; if (x > 44) px(g, '#4a3220', x, Y0 + 2, 1, Y1 - Y0 - 4); }
   for (let y = -16; y <= 16; y++) for (let x = -16; x <= 16; x++) { const d = Math.hypot(x, y); if (Math.abs(d - 12) < .7) px(g, '#c8b8a0', HX + x, LY + y, 1, 1); else if (Math.abs(d - 16) < .5) px(g, '#5a4430', HX + x, LY + y, 1, 1); }
+  if (rh.drum && rh.tick - rh.drum.at < 6) { g.globalAlpha = .3 * (1 - (rh.tick - rh.drum.at) / 6); for (let y = -11; y <= 11; y++) { const w = Math.round(Math.sqrt(121 - y * y)); px(g, TB_COL[rh.drum.type][1], HX - w, LY + y, w * 2 + 1, 1); } g.globalAlpha = 1; }  // la cible s'allume au coup
   // les roulements, puis les notes (les plus lointaines d'abord)
   for (const n of rh.notes) if (n.kind === 'roll' && !(n.judged && n.t < now - 3)) {
     const x1 = Math.max(HX, HX + (n.t - now) * pxs), x2 = HX + (n.end - now) * pxs; if (x2 < HX - 10 || x1 > W + 10) continue;
