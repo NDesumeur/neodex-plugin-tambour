@@ -42,3 +42,8 @@ Your scores and grades per level and your settings are stored by NeoDex, backed 
 In NeoDex: **NeoStore → Discover → Drumbeat → Install**.
 
 Building a plugin: see the [NeoDex SDK](https://github.com/NDesumeur/neodex-sdk).
+
+## Gamepad and accuracy curve
+
+- **Gamepad**: A and B hit red (both at once for a big note), X, Y and the shoulder buttons hit blue. Start starts the song, Select pauses.
+- **End screen**: a curve shows your accuracy along the song, with missed notes in red.

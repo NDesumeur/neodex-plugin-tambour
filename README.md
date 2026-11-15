@@ -42,3 +42,8 @@ Tes scores et notes par niveau et tes réglages sont enregistrés par NeoDex, sa
 Dans NeoDex : **NeoStore → À découvrir → Tambour → Installer**.
 
 Développer un plugin : voir le [SDK NeoDex](https://github.com/NDesumeur/neodex-sdk).
+
+## Manette et courbe de précision
+
+- **Manette** : A et B frappent le rouge (les deux à la fois pour une grosse note), X, Y et les gâchettes hautes frappent le bleu. Start lance le morceau, Select met en pause.
+- **Écran de fin** : une courbe montre la précision le long du morceau, avec les notes ratées en rouge.
