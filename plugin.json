@@ -1,7 +1,7 @@
 {
   "id": "neodex.tambour",
   "name": "Tambour",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "NDesumeur",
   "description": "Jeu de rythme au tambour : les notes rouges (coup au centre, F ou J) et bleues (coup sur le bord, D ou K) défilent vers le cercle, avec grosses notes à frapper des deux mains et roulements, sous les lanternes d'une fête de nuit. Les 1200 morceaux de Rythme notés de 1 à 10 étoiles, ou des niveaux créés depuis ta musique ; combo, note de S à D. Se joue à la manette ; l'écran de fin montre la courbe de précision le long du morceau.",
   "icon": "icon.png",
