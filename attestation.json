@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.tambour",
   "repo": "NDesumeur/neodex-plugin-tambour",
-  "version": "1.2.0",
-  "sha256": "ed0923680798232a9e31d60c23e2241f6dcda047b2a599ad71fc3d3c9d348895",
-  "approvedAt": "2026-11-20T01:51:14.037Z",
+  "version": "1.2.1",
+  "sha256": "ed13fe4ba4255ff683221beb1aa2ead23fce69331c53355ffbafc8bba7e47267",
+  "approvedAt": "2026-11-20T03:12:25.391Z",
   "neobase": ">=4.1.0",
-  "signature": "QdF4zB5J+iHqFDmNs1QWX7cc3Ar+bTwFEbFK+yuaddMi+hCHCSG8milzuW3/U5XrbGffqrnboGTsznM80TgrBA=="
+  "signature": "Q2sRTAPfHPjRmobbGgA2/Y+6CEJluNOQ8Dx/AKP6miEynxQwJgPneTbi2iGGiLpQqn5XXVY2Kjp2lVS204hVBA=="
 }
