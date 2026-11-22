@@ -30,5 +30,23 @@ module.exports = async ({ pj, sleep }) => {
   await sleep(1200); await shot('2-fin');
   const end = await pj(`(() => { const rh = document.getElementById('gc').__rh.st(); return [rh.mode, rh.hist.length].join(','); })()`);
   if (end !== 'over,200') throw new Error('écran de fin attendu : ' + end);
-  return l;
+  // 1.3.0 : les trois branches sur un morceau du jeu
+  const br = await pj(`(() => { const rh = document.getElementById('gc').__rh.st(); return [rh.br, new Set(rh.notes.map(n => n.br)).size].join(); })()`);
+  if (br !== '0,3') throw new Error('branches : ' + br);
+  // un .tja (avec sa musique en WAV) importé par le bouton : tempo, grosse note, ballon et son nombre de coups
+  const tja = await pj(`(async () => { const sr = 22050, n = sr * 8, wav = new Uint8Array(44 + n * 2), dv = new DataView(wav.buffer), w4 = (o, s) => [...s].forEach((c, i) => wav[o + i] = c.charCodeAt(0));
+      w4(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w4(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w4(36, 'data'); dv.setUint32(40, n * 2, true);
+      const txt = 'TITLE:Essai tja\\nBPM:120\\nOFFSET:-1\\nWAVE:essai.wav\\nCOURSE:Oni\\nBALLOON:4\\n#START\\n1020,\\n3400,\\n70000008,\\n1111,\\n#END\\n';
+      const inp = document.getElementById('tbTja'), dt = new DataTransfer(); dt.items.add(new File([txt], 'essai.tja')); dt.items.add(new File([wav], 'essai.wav')); inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+      for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 250)); const rh = document.getElementById('gc').__rh.st(); if (String(rh.song).startsWith('tja') && rh.mode === 'ready') break; }
+      const rh = document.getElementById('gc').__rh.st(); return String(rh.song).startsWith('tja') ? [rh.notes.length, rh.notes[2].big, rh.notes.find(x => x.kind === 'balloon')?.need, rh.diff, document.getElementById('rhSongs').textContent.includes('Essai tja')].join('|') : 'pas importé : ' + document.getElementById('rhImpMsg').textContent; })()`);
+  if (tja !== '9|true|4|Oni|true') throw new Error('morceau .tja : ' + tja);
+  await shot('3-tja');
+  // une épreuve Dan : le premier morceau se prépare en Normal ; raté, l'épreuve s'arrête et espace la quitte
+  const dan = await pj(`(async () => { const b = document.getElementById('tbDanBtn'); b.click();
+      for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 250)); if (document.getElementById('gc').__rh.st().mode === 'ready') break; }
+      const T = document.getElementById('gc').__rh, a = [T.st().diff, b.textContent.trim()]; T.finish([]); await new Promise(r => setTimeout(r, 1500));
+      document.dispatchEvent(new KeyboardEvent('keydown', {key: ' ', bubbles: true})); await new Promise(r => setTimeout(r, 500)); return [...a, b.textContent.trim()].join('|'); })()`);
+  if (dan !== "normal|QUITTER L'ÉPREUVE|COMMENCER L'ÉPREUVE") throw new Error('épreuve Dan : ' + dan);
+  return l + ' · branches, .tja et épreuve Dan ok';
 };

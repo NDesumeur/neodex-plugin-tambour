@@ -7,9 +7,10 @@ const HTML = `<div class="appWrap wide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button></div>
       <div class="row"><button class="btn" id="rhTabSongs">CHANSONS</button><button class="btn" id="rhTabMine">MES MUSIQUES</button></div>
-      <div class="sysCard rhImport" id="rhImport" style="display:none"><div class="row"><button class="btn main" id="rhFileBtn">IMPORTER UN FICHIER AUDIO</button><input type="file" id="rhFile" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac,.webm" hidden></div><div class="row"><select class="f" id="rhMuList"></select><button class="btn" id="rhMuBtn">CRÉER LE NIVEAU</button></div><div class="row"><label>Difficulté <select class="f" id="rhStars"><option value="1">1 ★</option><option value="2">2 ★</option><option value="3" selected>3 ★</option><option value="4">4 ★</option><option value="5">5 ★</option><option value="6">6 ★</option><option value="7">7 ★</option><option value="8">8 ★</option><option value="9">9 ★</option><option value="10">10 ★</option></select></label></div><span class="hint" id="rhImpMsg">Un fichier ou une musique de NeoMusic : le jeu trouve son tempo et ses temps forts et en fait un niveau.</span></div>
+      <div class="sysCard rhImport" id="rhImport" style="display:none"><div class="row"><button class="btn main" id="rhFileBtn">IMPORTER UN FICHIER AUDIO</button><input type="file" id="rhFile" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac,.webm" hidden></div><div class="row"><button class="btn" id="tbTjaBtn">IMPORTER UN .TJA (TAIKO)</button><input type="file" id="tbTja" accept=".tja,audio/*,.ogg" multiple hidden></div><div class="row"><select class="f" id="rhMuList"></select><button class="btn" id="rhMuBtn">CRÉER LE NIVEAU</button></div><div class="row"><label>Difficulté <select class="f" id="rhStars"><option value="1">1 ★</option><option value="2">2 ★</option><option value="3" selected>3 ★</option><option value="4">4 ★</option><option value="5">5 ★</option><option value="6">6 ★</option><option value="7">7 ★</option><option value="8">8 ★</option><option value="9">9 ★</option><option value="10">10 ★</option></select></label></div><span class="hint" id="rhImpMsg">Un fichier ou une musique de NeoMusic : le jeu trouve son tempo et ses temps forts et en fait un niveau.</span></div>
       <div id="rhSongs"></div>
-      <div class="sysCard rhOpts"><label>Volume <input type="range" id="rhVol" min="0" max="100" value="70"></label><label>Son des clics <select class="f gSel" id="rhClick"><option value="0" selected>Doux</option><option value="1">Clap</option><option value="2">Bois</option><option value="3">Grosse caisse</option><option value="4">Cristal</option><option value="5">Pop</option><option value="6">Charleston</option><option value="7">Caisse claire</option><option value="8">Pluck</option><option value="9">Tok</option><option value="-1">Aucun</option></select></label><label>Décalage <input type="number" class="f" id="rhOffset" min="-300" max="300" step="5" value="0" style="width:80px" title="Réglé tout seul après chaque partie"> ms</label></div>
+      <div class="sysCard"><b>ÉPREUVE DAN</b><div class="row"><select class="f gSel" id="tbDanK"><option value="1">Dan 1</option><option value="2">Dan 2</option><option value="3">Dan 3</option><option value="4">Dan 4</option><option value="5">Dan 5</option><option value="6">Dan 6</option><option value="7">Dan 7</option><option value="8">Dan 8</option><option value="9">Dan 9</option><option value="10">Dan 10</option></select><button class="btn" id="tbDanBtn">COMMENCER L'ÉPREUVE</button></div><span class="hint" id="tbDanMsg"></span></div>
+      <div class="sysCard rhOpts"><label>Volume <input type="range" id="rhVol" min="0" max="100" value="70"></label><label>Son des clics <select class="f gSel" id="rhClick"><option value="0" selected>Doux</option><option value="1">Clap</option><option value="2">Bois</option><option value="3">Grosse caisse</option><option value="4">Cristal</option><option value="5">Pop</option><option value="6">Charleston</option><option value="7">Caisse claire</option><option value="8">Pluck</option><option value="9">Tok</option><option value="-1">Aucun</option></select></label><label>Branches <select class="f gSel" id="tbBrOn" title="La difficulté monte ou descend en cours de morceau selon ta précision"><option value="1" selected>Oui</option><option value="0">Non</option></select></label><label>Décalage <input type="number" class="f" id="rhOffset" min="-300" max="300" step="5" value="0" style="width:80px" title="Réglé tout seul après chaque partie"> ms</label></div>
       <div class="hint">Les notes rouges se frappent au centre (F ou J), les bleues sur le bord (D ou K), au moment où elles touchent le cercle. Les grosses notes rapportent double si tu frappes des deux mains en même temps.</div><div class="hint">Sur les barres jaunes, c'est un roulement : tape le plus vite possible, chaque coup rapporte. À la souris ou au doigt : les tampons DON et KA en bas de l'écran.</div><div class="hint">La difficulté de chaque niveau est calculée sur ses notes (densité, passages chargés, déplacements) : de 1★ à 10★.</div>
     </div></div>
 </div>`;
@@ -898,22 +899,33 @@ function rhCount() {  // 3, 2, 1 jusqu'au départ de la musique (l'horloge audio
 let rhTok = 0;
 async function rhSelect(i, diff) { const me = rhTok + 1; rhBar(.03); try { return await rhPrepare(i, diff); } finally { if (me === rhTok) rhBar(null); } }
 async function rhPrepare(i, diff) {  // i : numéro d'un morceau du jeu, ou identifiant d'une musique importée
-  let info, c, base; const tok = ++rhTok;
+  let info, c, base, alt = null, tja = null; const tok = ++rhTok;
+  if (tbDan && (i !== tbDan.set.songs[tbDan.idx] || diff !== tbDan.set.diff)) { tbDan = null; tbDanUi(); }
   if (rh) { try { rh.src?.stop(); } catch {} rh.mode = 'load'; }
   if (typeof i === 'number') {
-    const song = RH_SONGS[i] || RH_SONGS[0]; i = RH_SONGS.indexOf(song); c = rhCompose(song); base = rhChart(c, diff); info = {name: song.name, bpm: song.bpm, key: 'rh' + i + diff};
+    const song = RH_SONGS[i] || RH_SONGS[0]; i = RH_SONGS.indexOf(song); c = rhCompose(song); base = rhChart(c, diff); info = {name: song.name, bpm: song.bpm, key: 'rh' + i + diff}; const comp = c; alt = d => rhChart(comp, d);
     const buffer = await rhRenderSong(i, c); c = {events: [], lead: c.lead, len: c.len, step: c.step, buffer, beat0: 0};
+  } else if (String(i).startsWith('tja')) {  // un morceau .tja : ses notes telles quelles (avec ses branches s'il en a)
+    const m = tbTjas().find(x => x.id === i); if (!m) return rhSelect(0, 'normal');
+    const L = await tbTjaLoad(m), ci = TB_TJA_C.indexOf(diff), cs = Object.keys(L.T.courses).map(Number).sort((a, b) => Math.abs(a - ci) - Math.abs(b - ci));
+    tja = L.T.courses[cs[0]]; const end = tja.at(-1)?.end || tja.at(-1)?.t || 0;
+    c = {events: [], lead: [], len: Math.max(L.buffer.duration, end + 1), step: 15 / L.T.bpm, buffer: L.buffer, beat0: 0}; base = []; info = {name: m.name, bpm: L.T.bpm, key: 'tja' + m.id + diff};
   } else {
     const imp = rhImports().find(x => x.id === i); if (!imp) return rhSelect(0, diff);
     const {a, buffer} = await rhLoadImport(imp);
-    c = {events: [], lead: [], len: a.len, step: a.beat / 4, buffer, beat0: a.beat0}; base = rhChartImport(a, diff); info = {name: imp.name, bpm: a.bpm, key: 'rhx' + imp.id + diff};
+    c = {events: [], lead: [], len: a.len, step: a.beat / 4, buffer, beat0: a.beat0}; base = rhChartImport(a, diff); alt = d => rhChartImport(a, d); info = {name: imp.name, bpm: a.bpm, key: 'rhx' + imp.id + diff};
   }
   if (tok !== rhTok) return;  // un autre niveau a été choisi entre-temps
-  const notes = RHG.chart(base, c, diff).map(n => ({...n, judged: false}));
+  let notes = (tja || RHG.chart(base, c, diff)).map(n => ({...n, judged: false})), br0 = null;
+  const brOn = !tbDan && tbVal('tbBrOn', '1') === '1';
+  if (alt && brOn) { const [ds, s0] = tbBrDiffs(diff); notes = ds.flatMap((d, b) => RHG.chart(d === diff ? base : alt(d), c, d).map(n => ({...n, br: b, judged: false}))).sort((x, y) => x.t - y.t); br0 = s0; }
+  if (tja && notes.some(n => n.br != null)) { if (brOn) br0 = 0; else notes = notes.filter(n => n.br == null || n.br === 0); }
+  const sec = br0 == null ? 0 : 16 * 60 / info.bpm, main = br0 == null ? notes : notes.filter(n => n.br == null || n.br === br0);
+  if (sec) for (const n of notes) n.sec = Math.floor(n.t / sec);
   rh = rhHook(rh || {raf: 0, tick: 0});
-  Object.assign(rh, {mode: 'ready', song: i, diff, c, info, notes, stars: rhStars(notes, c.len, RHG.factor), src: null, t0: 0, score: 0, combo: 0, maxCombo: 0,
+  Object.assign(rh, {mode: 'ready', song: i, diff, c, info, notes, stars: rhStars(main, c.len, RHG.factor), br: br0, brSec: sec, brDone: 0, brAt: -99, nShow: main.length, fc: false, src: null, t0: 0, score: 0, combo: 0, maxCombo: 0,
     counts: {PARFAIT: 0, BIEN: 0, OK: 0, RATÉ: 0}, dts: [], fx: [], sparks: [], record: false, grade: '', acc: 0, adj: 0, overAt: 0});
-  RHG.reset(); games.rhythmLast = {song: i, diff}; saveGames(); rhList();
+  RHG.reset(); if (br0 != null) tbBrApply(0); games.rhythmLast = {song: i, diff}; saveGames(); rhList();
   gameLoop(rh, RHG.key, RHG.update, rhDrawAll);
 }
 const rhFull = on => { try { if (on && !document.fullscreenElement) cv.parentElement.requestFullscreen?.().catch(() => {}); if (!on && document.fullscreenElement) document.exitFullscreen(); } catch {} };
@@ -925,7 +937,7 @@ function rhPress() {  // espace ou clic hors partie : jouer, reprendre, rejouer
   if (!rh) return false;
   if (rh.mode === 'ready') { rhBegin(); return true; }
   if (rh.mode === 'pause') { rh.mode = 'play'; rhCtx.resume(); return true; }
-  if (rh.mode === 'over') { if (rh.tick - rh.overAt > 40) rhSelect(rh.song, rh.diff); return true; }
+  if (rh.mode === 'over') { if (rh.tick - rh.overAt > 40 && !RHG.press?.()) rhSelect(rh.song, rh.diff); return true; }
   return false;
 }
 function rhPause() { if (rh?.mode === 'play') { rh.mode = 'pause'; rhCtx?.suspend(); } }
@@ -939,11 +951,11 @@ function rhMissed(n) { (rh.hist ??= []).push([n.t, 0]); n.judged = true; n.misse
 function rhCheckEnd(now) {
   if (now <= rh.c.len + 1.5) return false;
   rh.mode = 'over'; rh.overAt = rh.tick; try { rh.src?.stop(); } catch {} rhFull(false);
-  const n = rh.notes.length, acc = n ? (rh.counts.PARFAIT * 300 + rh.counts.BIEN * 200 + rh.counts.OK * 100) / (n * 300) : 0;
+  const n = rh.notes.filter(x => !x.off).length, acc = n ? (rh.counts.PARFAIT * 300 + rh.counts.BIEN * 200 + rh.counts.OK * 100) / (n * 300) : 0;
   rh.acc = acc; rh.grade = acc >= .95 ? 'S' : acc >= .9 ? 'A' : acc >= .8 ? 'B' : acc >= .7 ? 'C' : 'D';
   const k = rh.info.key, res = gstore('rhythm', {}); rh.record = best(k, rh.score);
   if (rh.record || !res[k]) res[k] = {score: rh.score, acc: Math.round(acc * 1000) / 10, grade: rh.grade, combo: rh.maxCombo};
-  rh.adj = rhAutoOffset(rh.dts); saveGames(); sfx('SAB'.includes(rh.grade) ? 'launch' : 'notify'); rhList(); rhInfo();
+  rh.adj = rhAutoOffset(rh.dts); RHG.over?.(); saveGames(); sfx('SAB'.includes(rh.grade) ? 'launch' : 'notify'); rhList(); rhInfo();
   return true;
 }
 function rhOffsetStep(dts) {  // décalage automatique : si tu tapes en moyenne en retard (ou en avance), on corrige de 70 % de l'écart
@@ -956,11 +968,11 @@ function rhAutoOffset(dts) { const d = rhOffsetStep(dts); if (!d) return 0; rhOf
 // les textes communs dessinés dans le canevas : départ, chargement, pause, résultats
 function rhScreens(y0 = 90) {
   const title = rh.info.name.length > 26 ? rh.info.name.slice(0, 25) + '…' : rh.info.name, diff = RH_DIFFS[rh.diff] || (String(rh.diff).startsWith('S') ? 'Perso' : rh.diff);
-  if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), RHG.color, 10], [diff + ' · ' + rhStarTxt(rh.stars) + ' · ' + rh.notes.length + ' notes · ' + Math.round(rh.info.bpm) + ' BPM', '#e8e0ff'], ...RHG.help, ['Espace ou clic : jouer (plein écran)', '#ffd84a']], y0);
+  if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), RHG.color, 10], [diff + ' · ' + rhStarTxt(rh.stars) + ' · ' + (rh.nShow ?? rh.notes.length) + ' notes · ' + Math.round(rh.info.bpm) + ' BPM', '#e8e0ff'], ...RHG.help, ['Espace ou clic : jouer (plein écran)', '#ffd84a']], y0);
   if (rh.mode === 'load') gameText(g, W, [['CHARGEMENT…', '#ffd84a', 10], ['La musique se prépare', '#e8e0ff']], y0 + 20);
   if (rh.mode === 'pause') gameText(g, W, [['PAUSE', '#ffffff', 12], ['Espace : reprendre', '#e8e0ff']], y0 + 20);
   if (rh.mode === 'over' && rh.tick - rh.overAt > 20) gameText(g, W, [['NOTE ' + rh.grade, rh.grade === 'S' ? '#ffd84a' : RHG.color, 14], [rh.score + ' points · ' + (rh.acc * 100).toFixed(1) + ' %', '#ffffff'], ['Combo max ' + rh.maxCombo + ' · ' + rhStarTxt(rh.stars), '#e8e0ff'],
-    ['Parfait ' + rh.counts.PARFAIT + ' · Bien ' + rh.counts.BIEN + ' · OK ' + rh.counts.OK + ' · Raté ' + rh.counts['RATÉ'], '#a8a0c8'], [rh.record ? 'NOUVEAU RECORD !' : 'Espace : rejouer', '#ffd84a'], ...(rh.adj ? [['Décalage ajusté : ' + (rh.adj > 0 ? '+' : '') + rh.adj + ' ms', '#7ee07a']] : [])], y0 - 10);
+    ['Parfait ' + rh.counts.PARFAIT + ' · Bien ' + rh.counts.BIEN + ' · OK ' + rh.counts.OK + ' · Raté ' + rh.counts['RATÉ'], '#a8a0c8'], [RHG.again?.() || (rh.record ? 'NOUVEAU RECORD !' : 'Espace : rejouer'), '#ffd84a'], ...(rh.adj ? [['Décalage ajusté : ' + (rh.adj > 0 ? '+' : '') + rh.adj + ' ms', '#7ee07a']] : [])], y0 - 10);
   if (rh.mode === 'over' && rh.tick - rh.overAt > 20) rhCurve(Math.min(g.canvas.height - 50, y0 - 10 + (rh.adj ? 6 : 5) * 14 + 16));
 }
 // la courbe de précision de l'écran de fin : la justesse le long du morceau (24 tranches ; 100 % = tout en PARFAIT), les notes ratées en rouge dessous
@@ -1015,7 +1027,7 @@ function rhPager(order) {  // 1200 chansons : 50 par page (sinon la liste est tr
 }
 function rhList() {
   $('rhTabSongs').classList.toggle('main', rhTab === 'songs'); $('rhTabMine').classList.toggle('main', rhTab === 'mine');
-  $('rhTabMine').textContent = 'MES MUSIQUES · ' + rhImports().length; $('rhImport').style.display = rhTab === 'mine' ? '' : 'none';
+  $('rhTabMine').textContent = 'MES MUSIQUES · ' + (rhImports().length + tbTjas().length); $('rhImport').style.display = rhTab === 'mine' ? '' : 'none';
   if (rhTab === 'mine' && !$('rhMuList').options.length) rhFillNeoMusic();
   if (rhTab === 'songs') {
     const res = games?.rhythm || {}, done = RH_SONGS.filter((_, i) => Object.keys(RH_DIFFS).some(d => res['rh' + i + d])).length;
@@ -1030,7 +1042,7 @@ function rhList() {
     return rhFillStars();
   }
   const list = rhImports();
-  $('rhSongs').replaceChildren(...(list.length ? list.map(imp => {
+  $('rhSongs').replaceChildren(...tbTjaCards(), ...(list.length || tbTjas().length ? list.map(imp => {
     const c = el('div', 'sysCard rhSong' + (rh?.song === imp.id ? ' on' : '')), x = el('button', 'rhDel', '×');
     x.title = 'Retirer ce niveau (la musique reste dans NeoMusic)';
     x.onclick = () => { games.rhythmImports = list.filter(o => o !== imp); rhAnalysed.delete(imp.id); saveGames(); rhList(); };
@@ -1058,14 +1070,14 @@ $('rhFs').onclick = () => { rhFull(!document.fullscreenElement); $('rhFs').blur(
 $('rhOffset').addEventListener('change', () => { rhOffMs = +$('rhOffset').value; });
 $('rhClick').onchange = () => { rhAudio(); rhCtx.resume(); rhClick(); };  // le son choisi, pour l'entendre
 $('rhVol').oninput = () => { if (rhOut) rhOut.gain.value = +$('rhVol').value / 100 * .6; };
-for (const id of ['rhVol', 'rhClick', 'rhOffset']) $(id).addEventListener('change', () => { gstore('rhythmPrefs', {})[id] = $(id).value; saveGames(); });
+for (const id of ['rhVol', 'rhClick', 'rhOffset', 'tbBrOn']) $(id).addEventListener('change', () => { gstore('rhythmPrefs', {})[id] = $(id).value; saveGames(); });
 setInterval(() => { if (rhCtx?.state === 'running' && (!view.classList.contains('on') || rh?.mode !== 'play')) rhCtx.suspend(); }, 200);  // la musique s'arrête avec la partie
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) rhPause(); });  // Échap sort du plein écran : on met en pause
 $('gNew').onclick = () => { if (rh) rhSelect(rh.song, rh.diff); $('gNew').blur(); };
 function rhInfo() { const res = games.rhythm || {}, all = Object.values(res); showStats([['Morceaux joués', all.length], ['Notes S', all.filter(r => r.grade === 'S').length], ['Meilleur combo', all.reduce((m, r) => Math.max(m, r.combo || 0), 0)]]); }
 function rhOpen() {
-  const p = games.rhythmPrefs || {}; for (const id of ['rhVol', 'rhClick', 'rhOffset']) if (p[id] != null) $(id).value = p[id];
-  rhOffMs = +$('rhOffset').value; rhInfo();
+  const p = games.rhythmPrefs || {}; for (const id of ['rhVol', 'rhClick', 'rhOffset', 'tbBrOn']) if (p[id] != null) $(id).value = p[id];
+  rhOffMs = +$('rhOffset').value; rhInfo(); tbDanUi();
   if (rh) { rhList(); return gameLoop(rh, RHG.key, RHG.update, rhDrawAll); }
   const last = games.rhythmLast || {song: 0, diff: 'normal'}; rhSelect(last.song, last.diff).catch(() => rhSelect(0, 'normal'));
 }
@@ -1077,22 +1089,26 @@ const RHG = {key: 'tambour', factor: 1, color: '#ff6a4a',
   help: [['F ou J : note rouge · D ou K : note bleue', '#ffc8b0'], ['Grosse note : deux touches ensemble', '#ffe0a0'], ['Barre jaune : tape le plus vite possible', '#ffe0a0']],
   // les notes de base (4 voies) deviennent : voies du milieu = rouge, voies du bord = bleu, accords = grosses notes, notes longues = roulements
   chart(base) {
-    const out = []; let rollEnd = -9;
+    const out = [], lastT = base.at(-1)?.t || 0; let rollEnd = -9, nr = 0;
     for (const n of base) {
       if (n.t < rollEnd + .12) continue;
       const last = out.at(-1);
-      if (last && Math.abs(last.t - n.t) < .01) { if (last.kind !== 'roll') last.big = true; continue; }
-      if (n.len > .35) { out.push({t: n.t, kind: 'roll', end: n.t + n.len, lane: n.lane, hits: 0}); rollEnd = n.t + n.len; continue; }
+      if (last && Math.abs(last.t - n.t) < .01) { if (TB_COL[last.kind]) last.big = true; continue; }
+      if (n.len > .35) {  // une note longue : un roulement, un ballon sur trois, et le kusudama une fois vers la fin
+        const k = n.len > 1.2 && n.t > lastT * .7 && !out.some(o => o.kind === 'kusu') ? 'kusu' : nr++ % 3 === 2 ? 'balloon' : 'roll';
+        out.push({t: n.t, kind: k, end: n.t + n.len, lane: n.lane, hits: 0, need: k === 'kusu' ? Math.max(8, Math.round(n.len * 9)) : k === 'balloon' ? Math.max(3, Math.round(n.len * 6)) : 0}); rollEnd = n.t + n.len; continue;
+      }
       out.push({t: n.t, kind: n.lane === 1 || n.lane === 2 ? 'don' : 'ka', lane: n.lane});
     }
     return out;
   },
   reset() { Object.assign(rh, {judge: null, drum: null, big: null, rolls: 0}); },
   update() {
-    const now = rhNow();
+    const now = rhNow(); tbBrStep(now);
     for (const n of rh.notes) {
       if (n.judged) continue; if (n.t - now > .2) break;
       if (n.kind === 'roll') { if (now > n.end) { if (n.hits) rhHit(n, 0); else rhMissed(n); } continue; }
+      if (n.kind === 'balloon' || n.kind === 'kusu') { if (now > n.end) tbBalloonEnd(n); continue; }
       if (now - n.t > RH.WIN.at(-1)[0]) { rhMissed(n); tbFx(n, null); }
     }
     for (const s of rh.sparks) { s.x += s.vx; s.y += s.vy; s.vy += .08; s.life--; } rh.sparks = rh.sparks.filter(s => s.life > 0);
@@ -1100,9 +1116,200 @@ const RHG = {key: 'tambour', factor: 1, color: '#ff6a4a',
     if (rh.judge && --rh.judge.t <= 0) rh.judge = null;
     rhCheckEnd(now);
   },
+  over() { rh.fc = !rh.counts['RATÉ'] && rh.maxCombo > 0; if (tbDan && rh.song === tbDan.set.songs[tbDan.idx]) tbDanEnd(); },
+  again: () => tbDan ? (tbDan.next ? 'Espace : morceau suivant' : 'Espace : quitter l\'épreuve') : '',
+  press: () => tbDanPress(),
   draw() { tbDraw(); },
 };
 const TB_COL = {don: ['#e83a2a', '#ff9a7a'], ka: ['#3a8ae8', '#9ad0ff']};
+/* ---------- 1.3.0 : branches de difficulté, ballons et kusudama, épreuves Dan, morceaux .tja ---------- */
+const TB_BR = ['NORMAL', 'EXPERT', 'MAÎTRE'], TB_BRCOL = ['#2a1a12', '#142438', '#2c1434'];
+const tbVal = (id, d) => { const v = $(id)?.value; return v == null || v === '' ? d : v; };
+// les trois branches d'un niveau : la difficulté choisie et les deux au-dessus (autour, pour les plus dures) -> [difficultés, branche de départ]
+function tbBrDiffs(diff) {
+  if (String(diff).startsWith('S')) { const k = +String(diff).slice(1); return [[k, k + 2, k + 4].map(x => 'S' + Math.min(10, x)), 0]; }
+  const L = Object.keys(RH_DIFFS), i = Math.max(0, L.indexOf(diff)), s = Math.min(i, L.length - 3); return [L.slice(s, s + 3), i - s];
+}
+console.assert(tbBrDiffs('facile').flat().join() === 'facile,normal,difficile,0' && tbBrDiffs('expert').flat().join() === 'normal,difficile,expert,2' && tbBrDiffs('S9')[0].join() === 'S9,S10,S10', 'tbBrDiffs');
+// une branche n'est jouée que dans sa section : les notes des autres branches sont mises de côté (jamais jugées)
+function tbBrApply(s) { for (const n of rh.notes) if (n.sec === s && n.br != null && n.br !== rh.br) { n.judged = true; n.off = true; } }
+// à l'approche de chaque section (4 mesures), la branche monte (précision ≥ 90 % sur la section d'avant) ou descend (moins de 65 %)
+function tbBrStep(now) {
+  if (rh.br == null || !rh.brSec) return;
+  const view = (W - TB.HX + 24) / (TB.PPB * (rh.info.bpm || 120) / 60), s = rh.brDone + 1;
+  if (now < s * rh.brSec - view - .3) return;
+  rh.brDone = s;
+  const ns = rh.notes.filter(n => n.sec === s - 1 && !n.off && n.judged && TB_COL[n.kind]);
+  if (ns.length >= 4) {
+    const a = ns.reduce((x, n) => x + (n.missed ? 0 : (n.w || 100) / 300), 0) / ns.length, nb = a >= .9 ? Math.min(2, rh.br + 1) : a < .65 ? Math.max(0, rh.br - 1) : rh.br;
+    if (nb !== rh.br) { rh.brUp = nb > rh.br; rh.br = nb; rh.brAt = rh.tick; sfx(rh.brUp ? 'launch' : 'notify'); }
+  }
+  tbBrApply(s);
+}
+// le son d'un coup : un peu différent à chaque fois (hauteur et force), comme une vraie peau
+function tbSnd(type) {
+  if (!rhCtx || !rhOut) return; rhKit ??= rhKitMake();
+  const s = rhCtx.createBufferSource(), gn = rhCtx.createGain(); s.buffer = rhKit[type === 'don' ? 3 : 9];
+  s.playbackRate.value = .95 + Math.random() * .1; gn.gain.value = .44 + Math.random() * .12; s.connect(gn).connect(rhOut); s.start();
+}
+// un ballon (ou le kusudama) éclate : la note est réussie, gros bonus
+function tbPop(n) {
+  const k = n.kind === 'kusu'; rhHit(n, 0); rh.score += k ? 3000 : 800;
+  rh.judge = {text: k ? 'KUSUDAMA !' : 'BALLON !', col: '#ffd84a', t: 30};
+  for (let i = 0; i < (k ? 30 : 14); i++) { const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 2; rh.sparks.push({x: TB.HX, y: TB.LY, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life: 18, col: i % 3 ? (k ? '#ffd84a' : '#ff8a2a') : '#ffffff'}); }
+  if (k) for (let j = 0; j < 3; j++) tbFirework(80 + j * 80, 100 + (j % 2) * 16, ['#ffd84a', '#ff6a4a', '#7ad8ff'][j]);
+}
+// fin d'un ballon pas éclaté : quelques coups donnent un OK, aucun un raté
+function tbBalloonEnd(n) { if (n.hits) rhHit(n, RH.WIN.at(-1)[0]); else rhMissed(n); }
+function tbBalloons(now, pxs) {  // le ballon roule vers le cercle, puis y reste et grossit à chaque coup ; le nombre de coups restants dessus
+  for (const n of rh.notes) {
+    if ((n.kind !== 'balloon' && n.kind !== 'kusu') || n.judged) continue;
+    const x = n.t > now ? Math.round(TB.HX + (n.t - now) * pxs) : TB.HX; if (x > W + 24) continue;
+    const k = n.kind === 'kusu', r = (k ? 12 : 9) + Math.round(Math.min(1, n.hits / n.need) * 5);
+    px(g, '#14100a', x, TB.LY + r - 1, 1, 4); px(g, '#f0e0c0', x - 1, TB.LY + r + 2, 3, 1);  // le nœud
+    g.drawImage(tbBall(r, k ? '#ffd84a' : '#ff8a2a', k ? '#fff0a0' : '#ffd0a0'), x - r, TB.LY - r);
+    if (k) { px(g, '#e83a2a', x - r + 3, TB.LY - 1, r * 2 - 5, 2); px(g, '#e83a2a', x - 1, TB.LY - r + 3, 2, r * 2 - 5); }  // le ruban du kusudama
+    pxFont(g, String(Math.max(0, n.need - n.hits)), x, TB.LY + 3, '#14100a', 7, 'center');
+  }
+}
+// ---- les épreuves Dan : 4 morceaux enchaînés, une précision minimale sur chacun et un nombre de ratés à ne pas dépasser en tout ----
+const TB_DAN_N = 10;
+let tbDan = null;
+function tbDanSet(k) {
+  const order = RH_SONGS.map((s, i) => i).filter(i => !RH_SONGS[i].last).sort((a, b) => RH_SONGS[a].bpm - RH_SONGS[b].bpm || a - b), r = seeded(k * 97 + 5), band = order.length / (TB_DAN_N + 1), songs = [];
+  for (let j = 0; j < 4; j++) { let p = Math.min(order.length - 1, Math.floor((k - 1 + j * .45) * band + r() * band * .4)); while (songs.includes(order[p])) p = (p + 1) % order.length; songs.push(order[p]); }
+  return {k, songs, diff: k <= 3 ? 'normal' : k <= 6 ? 'difficile' : 'expert', acc: Math.round((.78 + k * .015) * 1000) / 1000, miss: 40 - k * 3};
+}
+{ const a = tbDanSet(1), b = tbDanSet(10); console.assert(a.songs.length === 4 && new Set(a.songs).size === 4 && b.miss === 10 && b.diff === 'expert' && b.acc > a.acc, 'tbDanSet'); }
+const tbDanName = k => 'Dan ' + k;
+function tbDanStart(k) { const set = tbDanSet(k); tbDan = {set, idx: 0, miss: 0, accs: [], done: '', next: false}; rhSelect(set.songs[0], set.diff); tbDanUi(); }
+function tbDanEnd() {  // fin d'un morceau de l'épreuve
+  const d = tbDan, S = d.set; d.miss += rh.counts['RATÉ']; d.accs.push(rh.acc);
+  if (rh.acc < S.acc) d.done = 'précision';
+  else if (d.miss > S.miss) d.done = 'ratés';
+  else if (d.idx === 3) { d.done = 'ok'; if ((games.tambourDan || 0) < S.k) games.tambourDan = S.k; saveGames(); sfx('launch'); }
+  else d.next = true;
+  tbDanUi();
+}
+function tbDanPress() {  // espace sur l'écran de fin pendant une épreuve : morceau suivant, ou on quitte l'épreuve
+  if (!tbDan) return false;
+  if (tbDan.next) { tbDan.next = false; tbDan.idx++; rhSelect(tbDan.set.songs[tbDan.idx], tbDan.set.diff); return true; }
+  tbDan = null; tbDanUi(); rhSelect(rh.song, rh.diff); return true;
+}
+function tbDanUi() {
+  const best = games.tambourDan || 0, k = +tbVal('tbDanK', 1), S = tbDanSet(k);
+  $('tbDanMsg').textContent = (best ? 'Ton meilleur : ' + tbDanName(best) + '. ' : '') + '4 morceaux en ' + RH_DIFFS[S.diff] + ', au moins ' + Math.round(S.acc * 1000) / 10 + ' % sur chacun et pas plus de ' + S.miss + ' ratés en tout.';
+  $('tbDanBtn').textContent = tbDan ? 'QUITTER L\'ÉPREUVE' : 'COMMENCER L\'ÉPREUVE';
+}
+function tbDanDraw() {  // les lignes de l'épreuve, au-dessus de la piste
+  const d = tbDan, S = d.set, head = tbDanName(S.k).toUpperCase() + ' · MORCEAU ' + (d.idx + 1) + ' / 4';
+  if (rh.mode === 'ready') { pxFont(g, head, W / 2, 86, '#ffd84a', 7, 'center'); pxFont(g, 'Précision ' + Math.round(S.acc * 1000) / 10 + ' % · ratés ' + d.miss + ' / ' + S.miss, W / 2, 96, '#e8e0ff', 6, 'center'); }
+  if (rh.mode === 'play') pxFont(g, 'RATÉS ' + (d.miss + rh.counts['RATÉ']) + ' / ' + S.miss, W / 2, H - 14, d.miss + rh.counts['RATÉ'] > S.miss ? '#ff4a5a' : '#e8e0ff', 6, 'center');
+  if (rh.mode === 'over') pxFont(g, d.done === 'ok' ? 'ÉPREUVE RÉUSSIE : ' + tbDanName(S.k).toUpperCase() + ' !' : d.done ? 'ÉPREUVE ÉCHOUÉE (' + d.done + ')' : head + ' RÉUSSI', W / 2, 86, d.done && d.done !== 'ok' ? '#ff4a5a' : '#ffd84a', 7, 'center');
+}
+// ---- les morceaux .tja (le format des simulateurs de taiko) : notes, roulements, ballons, changements de tempo et de mesure, branches ----
+const TB_TJA_C = ['Facile', 'Normal', 'Difficile', 'Oni', 'Ura'];
+const tbCourse = v => { const s = String(v).trim().toLowerCase(), n = {easy: 0, normal: 1, hard: 2, oni: 3, edit: 4, ura: 4}[s]; return n ?? (/^[0-4]$/.test(s) ? +s : 3); };
+function tbTjaBody(body, H) {  // les lignes entre #START et #END -> notes {t, kind, big, end, need, br}
+  const bal = String(H.BALLOON || '').split(',').map(Number).filter(x => x > 0), out = [];
+  let bpm = +H.BPM || 120, meas = 1, t = -(+H.OFFSET || 0), bi = 0, open = null, br = null, brT = 0, brEnd = 0, items = [];
+  const flush = () => {  // une mesure finie (la virgule) : ses notes réparties sur sa durée, au tempo du moment
+    const nd = items.filter(x => typeof x === 'string').length;
+    if (!nd) { for (const x of items) x(); t += 240 / bpm * meas; items = []; return; }
+    for (const x of items) {
+      if (typeof x === 'function') { x(); continue; }
+      const kind = '13A'.includes(x) ? 'don' : '24B'.includes(x) ? 'ka' : null;
+      if (kind && !open) out.push({t, kind, big: '34AB'.includes(x), lane: kind === 'don' ? 1 : 3, br});
+      else if ('5679'.includes(x) && !open) { const k = x === '7' ? 'balloon' : x === '9' ? 'kusu' : 'roll'; open = {t, kind: k, lane: 1, hits: 0, br, need: k === 'roll' ? 0 : bal[bi++] || (k === 'kusu' ? 20 : 5)}; }
+      else if (x === '8' && open) { open.end = Math.max(t, open.t + .1); out.push(open); open = null; }
+      t += 240 / bpm * meas / nd;
+    }
+    items = [];
+  };
+  for (const raw of body) {
+    const l = raw.replace(/\/\/.*/, '').trim(); if (!l) continue;
+    if (l[0] === '#') {
+      const [cmd, ...rest] = l.split(/\s+/), v = rest.join(' ');
+      if (cmd === '#BPMCHANGE') items.push(() => { bpm = +v || bpm; });
+      else if (cmd === '#MEASURE') { const [a, b] = v.split('/').map(Number); items.push(() => { if (a > 0 && b > 0) meas = a / b; }); }
+      else if (cmd === '#DELAY') items.push(() => { t += +v || 0; });
+      else if (cmd === '#BRANCHSTART') { brT = t; brEnd = t; }
+      else if (cmd === '#N' || cmd === '#E' || cmd === '#M') { brEnd = Math.max(brEnd, t); t = brT; br = {'#N': 0, '#E': 1, '#M': 2}[cmd]; }
+      else if (cmd === '#BRANCHEND') { t = Math.max(brEnd, t); br = null; }
+      continue;
+    }
+    for (const ch of l) { if (ch === ',') flush(); else if (/[0-9AB]/.test(ch)) items.push(ch); }
+  }
+  if (items.length) flush();
+  return out.sort((a, b) => a.t - b.t);
+}
+function tbTja(text) {  // un fichier .tja -> {title, wave, bpm, courses: {numéro: notes}}
+  const H = {}, courses = {}; let body = null;
+  for (const raw of text.replace(/^﻿/, '').split(/\r?\n/)) {
+    const l = raw.replace(/\/\/.*/, '').trim();
+    if (body) { if (/^#END/i.test(l)) { const ns = tbTjaBody(body, H); if (ns.length) courses[tbCourse(H.COURSE ?? 3)] = ns; body = null; } else body.push(l); continue; }
+    if (/^#START/i.test(l)) { body = []; continue; }
+    const m = /^([A-Z0-9]+):(.*)$/i.exec(l); if (m) H[m[1].toUpperCase()] = m[2].trim();
+  }
+  return {title: H.TITLE || '', sub: H.SUBTITLE || '', wave: H.WAVE || '', bpm: +H.BPM || 120, courses};
+}
+{  // vérification : tempo, mesure, grosses notes, roulement, ballon, branches
+  const T = tbTja('TITLE:Essai\nBPM:120\nOFFSET:-1\nCOURSE:Oni\nBALLOON:7\n#START\n1020,\n#BPMCHANGE 240\n3400,\n50008000,\n7008,\n#BRANCHSTART p,50,80\n#N\n1111,\n#M\n22222222,\n#BRANCHEND\n1,\n#END\n'), n = T.courses[3] || [];
+  const ok = n.length === 19 && n[0].t === 1 && n[1].t === 2 && n[2].t === 3 && n[2].big && n[3].kind === 'ka' && n[3].t === 3.25 && n[4].kind === 'roll' && n[4].end === 4.5 && n[5].kind === 'balloon' && n[5].need === 7
+    && n.filter(x => x.br === 0).length === 4 && n.filter(x => x.br === 2).length === 8 && n.at(-1).t === 7 && n.at(-1).br == null;
+  console.assert(ok && T.title === 'Essai', 'tbTja', n.map(x => x.t + x.kind + (x.br ?? '')).join(' '));
+}
+const tbTjas = () => gstore('tambourTja', []);
+const tbHash = s => { let h = 7; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) | 0; return (h >>> 0).toString(36); };
+const tbB64 = u => new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = () => ko(fr.error); fr.readAsDataURL(new Blob([u])); });
+async function tbBytes(n) { const b = await folder.readFile(n); if (b == null) throw new Error('les fichiers de ce morceau ne sont pas sur ce PC'); const t = atob(b), u = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; }
+const tbAudioExt = u => u[0] === 0x4f && u[1] === 0x67 ? 'ogg' : u[0] === 0x66 && u[1] === 0x4c ? 'flac' : u[0] === 0x52 && u[1] === 0x49 ? 'wav' : 'mp3';
+async function tbTjaImport(files) {
+  const msg = t => { $('rhImpMsg').textContent = t; }, fs = [...files], tf = fs.find(f => /\.tja$/i.test(f.name));
+  if (!tf) throw new Error('choisis un fichier .tja et sa musique en même temps');
+  msg('Lecture de « ' + tf.name + ' »…');
+  const buf = new Uint8Array(await tf.arrayBuffer()); let text = new TextDecoder('utf-8').decode(buf);
+  if (text.includes('�')) try { text = new TextDecoder('shift_jis').decode(buf); } catch {}  // les .tja japonais sont souvent en Shift-JIS
+  const T = tbTja(text), cs = Object.keys(T.courses).map(Number).sort();
+  if (!cs.length) throw new Error('aucune difficulté avec des notes dans ce .tja');
+  const af = fs.find(f => f !== tf && T.wave && f.name.toLowerCase() === T.wave.toLowerCase()) || fs.find(f => f !== tf);
+  if (!af) throw new Error('choisis aussi la musique du morceau' + (T.wave ? ' (' + T.wave + ')' : ''));
+  if (af.size > 20e6) throw new Error('la musique fait plus de 20 Mo');
+  const audio = new Uint8Array(await af.arrayBuffer()), name = T.title || tf.name.replace(/\.tja$/i, ''), id = 'tja' + tbHash(name + '|' + cs.map(c => T.courses[c].length).join()), ext = tbAudioExt(audio);
+  msg('Copie de la musique…');
+  await folder.writeFile(id + '.json', await tbB64(new TextEncoder().encode(JSON.stringify(T))));
+  await folder.writeFile(id + '-audio.' + ext, await tbB64(audio));
+  const last = Math.max(...cs.map(c => T.courses[c].at(-1).end || T.courses[c].at(-1).t));
+  const e = {id, name, sub: T.sub, ext, courses: cs, n: cs.map(c => T.courses[c].length), len: Math.round(last), bpm: Math.round(T.bpm), d: Date.now()};
+  const L = tbTjas(), o = L.findIndex(x => x.id === id); if (o >= 0) L[o] = e; else L.push(e);
+  tbTjaCache.delete(id); saveGames(); rhTab = 'mine'; rhList(); msg('« ' + name + ' » importé : ' + cs.map(c => TB_TJA_C[c]).join(', ') + '.');
+  await rhSelect(id, TB_TJA_C[cs.includes(3) ? 3 : cs.at(-1)]);
+}
+const tbTjaCache = new Map();
+async function tbTjaLoad(m) {  // -> {T, buffer}, gardé tant que Tambour est ouvert
+  if (tbTjaCache.has(m.id)) return tbTjaCache.get(m.id);
+  rhAudio(); const T = JSON.parse(new TextDecoder().decode(await tbBytes(m.id + '.json'))), a = await tbBytes(m.id + '-audio.' + m.ext);
+  const C = {T, buffer: await rhCtx.decodeAudioData(a.buffer)}; tbTjaCache.set(m.id, C); return C;
+}
+async function tbTjaDrop(id) {
+  try { for (const n of await folder.listFiles()) if (n.startsWith(id)) await folder.removeFile(n); } catch {}
+  games.tambourTja = tbTjas().filter(x => x.id !== id); tbTjaCache.delete(id); saveGames(); rhList();
+}
+function tbTjaCards() {
+  const res = games.rhythm || {};
+  return tbTjas().map(m => {
+    const c = el('div', 'sysCard rhSong' + (rh?.song === m.id ? ' on' : '')), x = el('button', 'rhDel', '×'), row = el('div', 'row');
+    x.title = 'Retirer ce morceau'; x.onclick = () => tbTjaDrop(m.id);
+    for (const ci of m.courses) {
+      const d = TB_TJA_C[ci], r = res['tja' + m.id + d], b = el('button', 'btn' + (rh?.song === m.id && rh?.diff === d ? ' main' : ''), d + (r ? ' · ' + r.grade : ''));
+      if (r) b.title = r.score + ' points · ' + r.acc + ' %';
+      b.onclick = () => { b.blur(); $('rhImpMsg').textContent = 'Préparation du morceau…'; rhSelect(m.id, d).then(() => { $('rhImpMsg').textContent = ''; }, e => { $('rhImpMsg').textContent = 'Impossible : ' + e.message; }); };
+      row.append(b);
+    }
+    c.append(x, el('b', '', m.name), el('span', 'hint', 'Fichier .tja' + (m.sub ? ' · ' + m.sub.replace(/^--/, '') : '') + ' · ' + m.bpm + ' BPM · ' + clock(m.len)), row);
+    return c;
+  });
+}
 function tbFx(n, w) {
   rh.judge = {text: w ? w[1] : 'RATÉ', col: w ? w[3] : '#8a9ac8', t: 24};
   if (!w) return;
@@ -1112,18 +1319,19 @@ function tbFx(n, w) {
 }
 // un coup : pendant un roulement il compte pour lui ; sinon la note la plus proche, de la bonne couleur ; une grosse note frappée des deux mains rapporte double
 function tbHit(type, now = rhNow()) {
-  rh.drum = {type, at: rh.tick}; rhPlayKit(type === 'don' ? 3 : 9, .5);
+  rh.drum = {type, at: rh.tick}; tbSnd(type);
   if (rh.big && rh.big.type === type && now - rh.big.t < TB.BIG) { rh.score += rh.big.pts; rh.big = null; rh.fx.push({k: 'ring', col: '#ffd84a', big: 1, t: 0}); return; }
   rh.big = null;
   let near = null;
   for (const n of rh.notes) {
     if (n.judged) continue; if (n.t - now > .2) break;
+    if (n.kind === 'balloon' || n.kind === 'kusu') { if (now >= n.t && now <= n.end && (n.kind === 'kusu' || type === 'don')) { n.hits++; rh.score += 100; rh.fx.push({k: 'ring', col: '#ff8a2a', t: 8}); if (n.hits >= n.need) tbPop(n); return; } continue; }
     if (n.kind === 'roll') { if (now >= n.t && now <= n.end) { n.hits++; rh.rolls++; rh.score += 50; rh.fx.push({k: 'ring', col: '#ffd84a', t: 8}); return; } continue; }
     if (Math.abs(n.t - now) <= RH.WIN.at(-1)[0] && (!near || Math.abs(n.t - now) < Math.abs(near.t - now))) near = n;
   }
   if (!near) return;
   if (near.kind !== type) { rhMissed(near); tbFx(near, null); return; }
-  const w = rhHit(near, now - near.t); tbFx(near, w);
+  const w = rhHit(near, now - near.t); near.w = w ? w[2] : 0; tbFx(near, w);
   if (w && near.big) rh.big = {type, t: now, pts: w[2]};
 }
 /* le dessin : la piste en haut, la scène de fête en bas (ciel, lanternes, tambourinaire, public) */
@@ -1153,16 +1361,38 @@ const TB_BG = cnv(W, H, b => {  // le décor dessiné une fois : ciel de nuit tr
   px(b, '#3a2214', 0, 200, W, H - 200); for (let x = 0; x < W; x += 20) px(b, '#2a160c', x, 200, 1, H - 200); px(b, '#6a4228', 0, 200, W, 1); px(b, '#4a2c1a', 0, 201, W, 1);
 });
 function tbFirework(x, y, col) { for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2, v = 1.2 + (i % 3) * .5; (rh.fw ||= []).push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 46, col: i % 4 ? col : '#ffffff'}); } }
+/* ---------- 1.3.0 : NeoMe, la mascotte, danse au bord de la scène en tenue de fête : bandeau noué et éventail ----------
+   sa planche vient de NeoBestiary Studio (la même que Neo-Man : 64 x 64, ligne 0 de face, 1 et 2 de profil) */
+const TB_NEOME = Object.assign(new Image(), {src: 'data:image/png;base64,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'});
+function tbMascot(beat, cheer) {
+  if (!TB_NEOME.naturalWidth) return;
+  const S = 44, b = beat % 1, hop = cheer ? Math.round(Math.sin(b * Math.PI) * 6) : b < .2 ? 2 : 0, x = 64, y = 146 - hop;
+  const row = Math.floor(beat) % 4 === 1 ? 1 : Math.floor(beat) % 4 === 3 ? 2 : 0, col = Math.floor(beat * 2) % 5;  // de face, puis un pas de côté à gauche, puis à droite
+  g.globalAlpha = .35; px(g, '#000000', x + 9 + hop, 190, S - 18 - hop * 2, 2); g.globalAlpha = 1;  // l'ombre, plus petite quand elle saute
+  g.drawImage(TB_NEOME, col * 64, row * 64, 64, 64, x, y, S, S);
+  // le bandeau de fête : blanc, un rond rouge au front, deux pans noués qui volent derrière
+  const by = y + 11, side = row === 1 ? 1 : row === 2 ? -1 : 0;
+  px(g, '#14100a', x + 8, by - 1, S - 16, 4); px(g, '#f8f0e0', x + 9, by, S - 18, 2); px(g, '#e83a2a', x + S / 2 - 2 + side * 6, by, 3, 2);
+  const kx = side < 0 ? x + 8 : x + S - 9, fl = Math.round(Math.sin(beat * Math.PI * 2)) ;
+  for (const [dx, dy] of [[1, 0], [2, 1 + fl], [3, 1 + fl], [4, 2 + fl], [2, -1], [3, -1 - fl], [4, -2 - fl]]) px(g, '#f8f0e0', kx + (side < 0 ? -dx : dx), by + dy, 1, 1);
+  // l'éventail : un rond rouge et blanc sur son manche, agité en rythme (en l'air quand le public acclame)
+  const a = (cheer ? -1.9 : -.9) + Math.sin(beat * Math.PI) * .6, hx = x + S - 6, hy = y + 30, fx = hx + Math.cos(a) * 9, fy = hy + Math.sin(a) * 9;
+  for (let k = 0; k <= 6; k++) px(g, '#5a3418', hx + (fx - hx) * k / 6, hy + (fy - hy) * k / 6, 1, 1);
+  for (let yy = -4; yy <= 4; yy++) { const w = Math.round(Math.sqrt(20 - yy * yy)); px(g, '#14100a', fx - w - 1, fy + yy, w * 2 + 3, 1); px(g, yy < 0 ? '#e83a2a' : '#f8f0e0', fx - w, fy + yy, w * 2 + 1, 1); }
+  px(g, '#ffd84a', fx, fy - 1, 1, 2);
+}
 function tbStage(now) {
   const bpm = rh.info?.bpm || 120, beat = rh.mode === 'play' ? Math.max(0, now) * bpm / 60 : rh.tick / 40, bob = beat % 1 < .15 ? 1 : 0, cx = W / 2;
   g.drawImage(TB_BG, 0, 0);
   // un feu d'artifice tous les 50 de combo (et un petit à 25)
+  if (rh.mode === 'over' && rh.fc && (rh.tick - rh.overAt) % 14 === 0 && rh.tick - rh.overAt < 280) tbFirework(40 + Math.random() * 240, 90 + Math.random() * 40, ['#ff6a4a', '#ffd84a', '#7ad8ff', '#c88aff'][(rh.tick / 14 | 0) % 4]);  // plein combo : le bouquet final
   if (rh.mode === 'play' && rh.combo && rh.combo % 25 === 0 && rh.fwAt !== rh.combo) { rh.fwAt = rh.combo; const n = rh.combo % 50 ? 1 : 3; for (let k = 0; k < n; k++) tbFirework(60 + Math.random() * 200, 96 + Math.random() * 30, ['#ff6a4a', '#ffd84a', '#7ad8ff', '#c88aff'][(rh.combo / 25 + k) % 4]); rh.cheer = rh.tick; }
   if (rh.fw) { for (const p of rh.fw) { p.x += p.vx; p.y += p.vy; p.vx *= .96; p.vy = p.vy * .96 + .04; p.life--; g.globalAlpha = Math.min(1, p.life / 20); px(g, p.col, p.x, p.y, p.life > 30 ? 2 : 1, p.life > 30 ? 2 : 1); } g.globalAlpha = 1; rh.fw = rh.fw.filter(p => p.life > 0); }
-  for (let i = 0; i < 9; i++) {  // les lanternes qui se balancent, avec leur halo qui respire
+  const lit = rh.mode === 'play' ? Math.min(9, Math.floor(rh.combo / 10)) : 9;
+  for (let i = 0; i < 9; i++) {  // les lanternes qui se balancent, avec leur halo qui respire ; en partie, elles s'allument une à une tous les 10 de combo
     const x = 14 + i * 37, y = 88 + Math.round(Math.sin(x / W * Math.PI) * 10), sw = Math.round(Math.sin(beat * Math.PI + i)), gl = .1 + (beat % 1 < .2 ? .08 : 0);
-    g.globalAlpha = gl; for (let d = -8; d <= 8; d++) { const w = Math.round(Math.sqrt(64 - d * d)); px(g, '#ffaa5a', x + sw - w, y + 5 + d, w * 2 + 1, 1); } g.globalAlpha = 1;
-    g.drawImage(TB_LANTERN, x - 3 + sw, y);
+    if (i < lit) { g.globalAlpha = gl; for (let d = -8; d <= 8; d++) { const w = Math.round(Math.sqrt(64 - d * d)); px(g, '#ffaa5a', x + sw - w, y + 5 + d, w * 2 + 1, 1); } }
+    g.globalAlpha = i < lit ? 1 : .35; g.drawImage(TB_LANTERN, x - 3 + sw, y); g.globalAlpha = 1;
   }
   // le tambourinaire : bras levés entre deux coups, baguettes sur la peau (au centre ou sur le bord) quand on frappe
   const hit = rh.drum && rh.tick - rh.drum.at < 7, rim = rh.drum?.type === 'ka', my = 149 - (hit ? -1 : bob);
@@ -1185,6 +1415,7 @@ function tbStage(now) {
   if (hit) { const p = rh.tick - rh.drum.at, c = rim ? '#9ad0ff' : '#ffd84a'; g.globalAlpha = 1 - p / 7; for (const a of [-2.4, -1.9, -1.57, -1.2, -.7]) { const ox = rim ? (a < -1.57 ? -22 : 22) : 0; px(g, c, cx + ox + Math.cos(a) * (8 + p * 3), 166 + Math.sin(a) * (8 + p * 3), 2, 2); } g.globalAlpha = 1; }
   // le public, éclairé par les lanternes : il danse en rythme et lève les bras au combo
   const cheer = rh.mode === 'play' && (rh.tick - (rh.cheer ?? -99) < 90 || (rh.combo >= 30 && beat % 2 < 1));
+  tbMascot(beat, cheer);
   const CROWD = ['#4a1a3a', '#1a2a4a', '#3a2a1a', '#2a1a4a', '#1a3a2a'];
   for (let i = 0; i < 11; i++) {
     const x = 8 + i * 30 + (i % 2) * 6; if (Math.abs(x - cx) < 32) continue;
@@ -1200,21 +1431,22 @@ function tbStage(now) {
 }
 function tbLane(now) {
   const {HX, LY, Y0, Y1} = TB, bpm = rh.info?.bpm || 120, pxs = TB.PPB * bpm / 60;
-  px(g, '#14100a', 0, Y0 - 1, W, Y1 - Y0 + 2); px(g, '#2a1a12', 0, Y0 + 1, W, Y1 - Y0 - 2); px(g, '#c8902a', 0, Y0, W, 1); px(g, '#c8902a', 0, Y1 - 1, W, 1);
+  px(g, '#14100a', 0, Y0 - 1, W, Y1 - Y0 + 2); px(g, TB_BRCOL[rh.br ?? 0], 0, Y0 + 1, W, Y1 - Y0 - 2); px(g, '#c8902a', 0, Y0, W, 1); px(g, '#c8902a', 0, Y1 - 1, W, 1);
   const bar = 4 * 60 / bpm; for (let k = Math.max(0, Math.ceil((now - 1) / bar)); ; k++) { const x = HX + (k * bar - now) * pxs; if (x > W) break; if (x > 44) px(g, '#4a3220', x, Y0 + 2, 1, Y1 - Y0 - 4); }
   for (let y = -16; y <= 16; y++) for (let x = -16; x <= 16; x++) { const d = Math.hypot(x, y); if (Math.abs(d - 12) < .7) px(g, '#c8b8a0', HX + x, LY + y, 1, 1); else if (Math.abs(d - 16) < .5) px(g, '#5a4430', HX + x, LY + y, 1, 1); }
   if (rh.drum && rh.tick - rh.drum.at < 6) { g.globalAlpha = .3 * (1 - (rh.tick - rh.drum.at) / 6); for (let y = -11; y <= 11; y++) { const w = Math.round(Math.sqrt(121 - y * y)); px(g, TB_COL[rh.drum.type][1], HX - w, LY + y, w * 2 + 1, 1); } g.globalAlpha = 1; }  // la cible s'allume au coup
   // les roulements, puis les notes (les plus lointaines d'abord)
-  for (const n of rh.notes) if (n.kind === 'roll' && !(n.judged && n.t < now - 3)) {
+  for (const n of rh.notes) if (n.kind === 'roll' && !n.off && !(n.judged && n.t < now - 3)) {
     const x1 = Math.max(HX, HX + (n.t - now) * pxs), x2 = HX + (n.end - now) * pxs; if (x2 < HX - 10 || x1 > W + 10) continue;
     px(g, '#14100a', x1, LY - 9, x2 - x1, 19); px(g, '#ffd84a', x1, LY - 8, x2 - x1, 17); px(g, '#fff0a0', x1, LY - 7, x2 - x1, 3); px(g, '#c8902a', x1, LY + 5, x2 - x1, 3);
     g.drawImage(tbBall(9, '#ffd84a', '#fff0a0'), x2 - 9, LY - 9); if (n.t > now) g.drawImage(tbBall(9, '#ffd84a', '#fff0a0'), x1 - 9, LY - 9);
   }
   for (let i = rh.notes.length - 1; i >= 0; i--) {
-    const n = rh.notes[i]; if (n.kind === 'roll' || n.judged) continue;
+    const n = rh.notes[i]; if (!TB_COL[n.kind] || n.judged) continue;
     const x = Math.round(HX + (n.t - now) * pxs); if (x > W + 16 || x < -16) continue;
     const r = n.big ? 14 : 10; g.drawImage(tbBall(r, ...TB_COL[n.kind]), x - r, LY - r);
   }
+  tbBalloons(now, pxs);
   // le petit tambour à gauche : le centre s'allume en rouge, le bord en bleu ; le combo au milieu
   const dt = rh.drum && rh.tick - rh.drum.at < 6 ? rh.drum.type : '';
   px(g, '#2a1a12', 0, Y0 + 1, 42, Y1 - Y0 - 2);
@@ -1234,9 +1466,12 @@ function tbDraw() {
   if (rh.mode !== 'ready' && rh.mode !== 'load') {
     rhProgress(now, '#ff6a4a'); pxFont(g, String(rh.score).padStart(7, '0'), 4, 14, '#ffffff', 7);
     if (rh.combo > 4) pxFont(g, rh.combo + ' combo', W - 4, 14, '#ffd84a', 7, 'right');
+    if (rh.br != null) pxFont(g, TB_BR[rh.br], W / 2, 14, rh.tick - rh.brAt < 60 && rh.tick % 10 < 5 ? '#ffffff' : ['#c8a878', '#7ad8ff', '#e88aff'][rh.br], 7, 'center');  // la branche, qui clignote quand elle change
     pxFont(g, rhStarTxt(rh.stars), W / 2, H - 6, '#8a6a58', 6, 'center');
   }
   if (rh.mode === 'play' && now < 0) pxFont(g, String(Math.ceil(-now)), W / 2, 120, '#ffd84a', 16, 'center');
+  if (tbDan) tbDanDraw();
+  if (rh.mode === 'over' && rh.fc && rh.tick - rh.overAt > 20) pxFont(g, 'PLEIN COMBO !', W / 2, 52, '#ffd84a', 10, 'center');
   rhScreens(128);
   if (rh.tick % 15 === 0) cv.setAttribute('aria-label', 'Tambour, ' + (rh.info?.name || '') + ' : ' + ({ready: 'prêt', load: 'chargement', play: 'en jeu', pause: 'pause', over: 'fini'}[rh.mode] || rh.mode) + ', score ' + rh.score + ', combo ' + rh.combo + ', ' +
     Object.entries(rh.counts).map(([k, v]) => k.toLowerCase() + ' ' + v).join(', ') + ', roulement ' + (rh.rolls || 0) + '.');
@@ -1277,9 +1512,19 @@ cv.__rh = {st: () => rh, finish: hist => { rh.hist = hist; rh.mode = 'play'; rhC
     notes: [{t: 1, kind: 'don', big: true}, {t: 2, kind: 'ka'}, {t: 3, kind: 'roll', end: 4, hits: 0}, {t: 5, kind: 'don'}].map(n => ({...n, judged: false}))};
   tbHit('don', 1.01); const s1 = rh.score; tbHit('don', 1.03); tbHit('don', 2); tbHit('ka', 3.5); tbHit('ka', 3.6); tbHit('don', 5.08);
   if (rh.notes[0].missed || rh.score - s1 < 200 || !rh.notes[1].missed || rh.notes[2].hits !== 2 || rh.counts.PARFAIT !== 1 || rh.counts.OK + rh.counts.BIEN !== 1) bad.push('jugement ' + JSON.stringify(rh.counts));
+  rh.notes = [{t: 6, kind: 'balloon', end: 7, hits: 0, need: 3}].map(n => ({...n, judged: false})); tbHit('ka', 6.2); tbHit('don', 6.2); tbHit('don', 6.3); tbHit('don', 6.4);
+  if (!rh.notes[0].judged || rh.notes[0].missed || rh.notes[0].hits !== 3) bad.push('ballon');
+  Object.assign(rh, {mode: 'test', info: {bpm: 120}, br: 0, brSec: 8, brDone: 0, brAt: -99});
+  rh.notes = [0, 1, 2, 3, 4].map(k => ({t: k, kind: 'don', br: 0, sec: 0, judged: true, w: 300})).concat([{t: 9, kind: 'don', br: 0, sec: 1, judged: false}, {t: 9, kind: 'don', br: 1, sec: 1, judged: false}]);
+  tbBrStep(7.9); if (rh.br !== 1 || !rh.notes[5].off || rh.notes[6].off) bad.push('branches');
   rh = keep;
   console.assert(!bad.length, 'tambour', bad);
 }
+$('tbTjaBtn').onclick = () => $('tbTja').click();
+$('tbTja').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) tbTjaImport(fs).catch(err => { $('rhImpMsg').textContent = 'Import impossible : ' + err.message; }); };
+$('tbDanK').onchange = () => tbDanUi();
+$('tbDanBtn').onclick = () => { $('tbDanBtn').blur(); if (tbDan) { tbDan = null; tbDanUi(); if (rh) rhSelect(rh.song, rh.diff); } else tbDanStart(+tbVal('tbDanK', 1)); };
+$('tbBrOn').addEventListener('change', () => { if (rh && rh.mode !== 'play') rhSelect(rh.song, rh.diff); });
 ctx.onOpen(() => rhOpen());
 }
 
